@@ -93,6 +93,25 @@ class Home extends Component {
     console.log(`Clicked on cell # ${cellId}`);
     this.setState({ selectedCell: cellId });
   };
+  onNumberClick = (number) => {
+    if (number === 'Reset') {
+      let cells = [];
+      for (let i = 1; i < 10; i++) {
+        for (let j = 1; j < 10; j++) {
+          cells.push(j);
+        }
+      }
+      this.setState({ cells });
+    } else {
+      const { cells, selectedCell } = this.state;
+      let newCells = [...cells];
+      if (selectedCell > -1) {
+        console.log(number, selectedCell);
+        newCells[selectedCell - 1] = number;
+        this.setState({ cells: newCells });
+      }
+    }
+  };
   render() {
     const { classes } = this.props;
     const { cells, selectedCell } = this.state;
@@ -165,12 +184,13 @@ class Home extends Component {
           justify="center"
           alignItems="center"
           className={classes.buttonRow}>
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((x, i) => (
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 'Reset'].map((x, i) => (
             <Button
               key={i}
               variant="fab"
               color="primary"
               aria-label={x}
+              onClick={() => this.onNumberClick(x)}
               className={classes.button}>
               {x}
             </Button>
