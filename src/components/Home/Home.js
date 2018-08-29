@@ -62,6 +62,7 @@ const styles = (theme) => ({
     height: '33.333%'
   },
   cell: {
+    minWidth: 0,
     width: 'calc(33.333% - 8px)',
     height: 'calc(100% - 8px)',
     margin: '4px',
@@ -116,7 +117,16 @@ class Home extends Component {
                       alignItems="center"
                       className={classes.row}>
                       {[1, 2, 3].map((y, j) => (
-                        <Paper key={j} className={classes.cell} />
+                        <Button
+                          children={`${y + 3 * (m - 1)} -${y +
+                            3 * (m - 1) +
+                            9 * (x - 1) +
+                            27 * (a - 1)}-`}
+                          variant="outlined"
+                          color="primary"
+                          key={y + 3 * (m - 1) + 9 * (x - 1)}
+                          className={classes.cell}
+                        />
                       ))}
                     </Grid>
                   ))}
