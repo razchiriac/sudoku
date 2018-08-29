@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
 
 import Button from '@material-ui/core/Button';
-import Paper from '@material-ui/core/Paper';
 import Grid from '@material-ui/core/Grid';
 
 const styles = (theme) => ({
@@ -74,9 +73,29 @@ const styles = (theme) => ({
   }
 });
 class Home extends Component {
-  componentDidMount() {}
+  constructor(props) {
+    super(props);
+    this.state = {
+      cells: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+      selectedCell: -1
+    };
+  }
+  componentDidMount() {
+    let cells = [];
+    for (let i = 1; i < 10; i++) {
+      for (let j = 1; j < 10; j++) {
+        cells.push(j);
+      }
+    }
+    this.setState({ cells });
+  }
+  onCellClick = (cellId) => {
+    console.log(`Clicked on cell # ${cellId}`);
+    this.setState({ selectedCell: cellId });
+  };
   render() {
     const { classes } = this.props;
+    const { cells, selectedCell } = this.state;
     return (
       <Grid
         container
@@ -116,18 +135,23 @@ class Home extends Component {
                       justify="center"
                       alignItems="center"
                       className={classes.row}>
-                      {[1, 2, 3].map((y, j) => (
-                        <Button
-                          children={`${y + 3 * (m - 1)} -${y +
-                            3 * (m - 1) +
-                            9 * (x - 1) +
-                            27 * (a - 1)}-`}
-                          variant="outlined"
-                          color="primary"
-                          key={y + 3 * (m - 1) + 9 * (x - 1)}
-                          className={classes.cell}
-                        />
-                      ))}
+                      {[1, 2, 3].map((y, j) => {
+                        let cellId =
+                          y + 3 * (m - 1) + 9 * (x - 1) + 27 * (a - 1);
+                        let number = cells[cellId - 1];
+                        return (
+                          <Button
+                            children={`${number}`}
+                            variant={
+                              selectedCell === cellId ? 'contained' : 'outlined'
+                            }
+                            color="primary"
+                            key={cellId}
+                            className={classes.cell}
+                            onClick={() => this.onCellClick(cellId)}
+                          />
+                        );
+                      })}
                     </Grid>
                   ))}
                 </Grid>
