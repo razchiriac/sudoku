@@ -4,6 +4,8 @@ import { withStyles } from '@material-ui/core/styles';
 
 import Button from '@material-ui/core/Button';
 import Grid from '@material-ui/core/Grid';
+import Tooltip from '@material-ui/core/Tooltip';
+import pink from '@material-ui/core/colors/pink';
 
 const styles = (theme) => ({
   root: {
@@ -70,6 +72,15 @@ const styles = (theme) => ({
     '&:hover': {
       transform: 'scale(1.1)'
     }
+  },
+  tooltip: {
+    boxShadow: `0px 1px 3px 0px rgba(0, 0, 0, 0.2), 0px 1px 1px 0px rgba(0, 0, 0, 0.14), 0px 2px 1px -1px rgba(0, 0, 0, 0.12)`,
+    backgroundColor: pink[400],
+    color: '#FFF',
+    fontSize: '1.2em'
+  },
+  paper: {
+    padding: theme.spacing.unit
   }
 });
 class Home extends Component {
@@ -81,33 +92,67 @@ class Home extends Component {
     };
   }
   componentDidMount() {
+    this.generateCells((cells) => this.setState({ cells }));
+  }
+  generateCells = (callback) => {
     let cells = [];
+    let blockCellIndexArr = [];
     for (let i = 1; i < 10; i++) {
       for (let j = 1; j < 10; j++) {
-        cells.push(j);
+        blockCellIndexArr.push([i * j, i, j]);
       }
     }
-    this.setState({ cells });
-  }
+
+    [1, 2, 3].forEach((a) => {
+      [1, 2, 3].forEach((b) => {
+        [1, 2, 3].forEach((c) => {
+          [1, 2, 3].forEach((d) => {
+            let cell = {};
+            cell.index = d + 3 * (c - 1) + 9 * (b - 1) + 27 * (a - 1);
+            cell.value =
+              blockCellIndexArr[cell.index - 1][0] /
+              blockCellIndexArr[cell.index - 1][1];
+            cell.bcAddress = [
+              blockCellIndexArr[cell.index - 1][1],
+              blockCellIndexArr[cell.index - 1][2]
+            ];
+            cell.rcAddress = [
+              Math.floor((cell.index - 1) / 9),
+              ((cell.index - 1) % 3) + (((cell.bcAddress[0] - 1) * 3) % 9)
+            ];
+            // cell.neighbors = {
+            //   row: [0, 0, 0],
+            //   column: [0, 0, 0],
+            //   block: [0, 0, 0]
+            // };
+            cells.push(cell);
+            if (cells.length === 81) callback(cells);
+          });
+        });
+      });
+    });
+  };
+  formatCells = () => {
+    const { cells } = this.state;
+    let formattedCells = {};
+    cells.forEach((cell, index) => {
+      let formattedCell = {};
+      formattedCell.value = cell;
+    });
+    return formattedCells;
+  };
   onCellClick = (cellId) => {
     console.log(`Clicked on cell # ${cellId}`);
     this.setState({ selectedCell: cellId });
   };
   onNumberClick = (number) => {
     if (number === 'Reset') {
-      let cells = [];
-      for (let i = 1; i < 10; i++) {
-        for (let j = 1; j < 10; j++) {
-          cells.push(j);
-        }
-      }
-      this.setState({ cells });
+      this.generateCells((cells) => this.setState({ cells }));
     } else {
       const { cells, selectedCell } = this.state;
       let newCells = [...cells];
       if (selectedCell > -1) {
-        console.log(number, selectedCell);
-        newCells[selectedCell - 1] = number;
+        newCells[selectedCell - 1].value = number;
         this.setState({ cells: newCells });
       }
     }
@@ -115,6 +160,7 @@ class Home extends Component {
   render() {
     const { classes } = this.props;
     const { cells, selectedCell } = this.state;
+
     return (
       <Grid
         container
@@ -146,33 +192,60 @@ class Home extends Component {
                   item
                   xs={4}
                   className={classes.boxCol}>
-                  {[1, 2, 3].map((m, d) => (
-                    <Grid
-                      key={d}
-                      container
-                      direction="row"
-                      justify="center"
-                      alignItems="center"
-                      className={classes.row}>
-                      {[1, 2, 3].map((y, j) => {
-                        let cellId =
-                          y + 3 * (m - 1) + 9 * (x - 1) + 27 * (a - 1);
-                        let number = cells[cellId - 1];
-                        return (
-                          <Button
-                            children={`${number}`}
-                            variant={
-                              selectedCell === cellId ? 'contained' : 'outlined'
+                  {[1, 2, 3].map((m, d) => {
+                    return (
+                      <Grid
+                        key={d}
+                        container
+                        direction="row"
+                        justify="center"
+                        alignItems="center"
+                        className={classes.row}>
+                        {[1, 2, 3].map((y, j) => {
+                          let cellId =
+                            y + 3 * (m - 1) + 9 * (x - 1) + 27 * (a - 1);
+                          let number = '';
+                          let cell = {};
+                          let tMessage = '';
+                          if (cells && cells[cellId - 1]) {
+                            cell = cells[cellId - 1];
+                            number = cells[cellId - 1].value;
+                            tMessage = JSON.stringify(cells[cellId - 1]);
+                            while (
+                              tMessage.includes('{') ||
+                              tMessage.includes('}') ||
+                              tMessage.includes(',')
+                            ) {
+                              tMessage = tMessage
+                                .replace('{', '\n\n')
+                                .replace('}', '\n\n')
+                                .replace(',', '\n\n');
                             }
-                            color="primary"
-                            key={cellId}
-                            className={classes.cell}
-                            onClick={() => this.onCellClick(cellId)}
-                          />
-                        );
-                      })}
-                    </Grid>
-                  ))}
+                          }
+                          return (
+                            <Tooltip
+                              key={cellId * 100}
+                              classes={{ tooltip: classes.tooltip }}
+                              title={`${cellId} - ${tMessage}`}
+                              placement="right">
+                              <Button
+                                children={`${number}`}
+                                variant={
+                                  selectedCell === cellId
+                                    ? 'contained'
+                                    : 'outlined'
+                                }
+                                color="primary"
+                                key={cellId}
+                                className={classes.cell}
+                                onClick={() => this.onCellClick(cellId)}
+                              />
+                            </Tooltip>
+                          );
+                        })}
+                      </Grid>
+                    );
+                  })}
                 </Grid>
               ))}
             </Grid>
