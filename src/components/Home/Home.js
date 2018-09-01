@@ -117,7 +117,9 @@ class Home extends Component {
               blockCellIndexArr[cell.index - 1][2]
             ];
             cell.rcAddress = [
-              Math.floor((cell.index - 1) / 9),
+              Math.floor((cell.bcAddress[1] - 1) / 3) +
+                Math.floor(cell.bcAddress[0] - 1 / 3) -
+                ((cell.bcAddress[0] - 1) % 3),
               ((cell.index - 1) % 3) + (((cell.bcAddress[0] - 1) * 3) % 9)
             ];
             // cell.neighbors = {
