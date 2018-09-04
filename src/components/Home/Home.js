@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
+import classNames from 'classnames';
 
 import Button from '@material-ui/core/Button';
 import Grid from '@material-ui/core/Grid';
@@ -62,16 +63,31 @@ const styles = (theme) => ({
     width: '100%',
     height: '33.333%'
   },
+  selectedCell: {
+    fontSize: '1.8em'
+  },
+  matchingNumberCell: {
+    fontSize: '1.6em'
+  },
   cell: {
     minWidth: 0,
     width: 'calc(33.333% - 8px)',
     height: 'calc(100% - 8px)',
     margin: '4px',
     cursor: 'pointer',
-    transition: 'all .25s ease',
+    transition: 'all .5s ease',
     '&:hover': {
       transform: 'scale(1.1)'
     }
+  },
+  blockNeighbor: {
+    backgroundColor: '#81d4fa'
+  },
+  rowNeighbor: {
+    backgroundColor: '#b2ebf2'
+  },
+  columnNeighbor: {
+    backgroundColor: '#b2ebf2'
   },
   tooltip: {
     boxShadow: `0px 1px 3px 0px rgba(0, 0, 0, 0.2), 0px 1px 1px 0px rgba(0, 0, 0, 0.14), 0px 2px 1px -1px rgba(0, 0, 0, 0.12)`,
@@ -87,13 +103,24 @@ class Home extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      cells: [1, 2, 3, 4, 5, 6, 7, 8, 9],
-      selectedCell: -1
+      cells: [],
+      neighbors: {
+        row: [-1],
+        column: [-1],
+        block: [-1]
+      },
+      selectedCellId: -1
     };
   }
   componentDidMount() {
-    this.generateCells((cells) => this.setState({ cells }));
+    this.generateCells((cells) => {
+      if (cells.length === 81)
+        this.generateNeighbors(cells, (newCells) => {
+          this.setState({ cells: newCells });
+        });
+    });
   }
+
   generateCells = (callback) => {
     let cells = [];
     let blockCellIndexArr = [];
@@ -122,11 +149,7 @@ class Home extends Component {
                 ((cell.bcAddress[0] - 1) % 3),
               ((cell.index - 1) % 3) + (((cell.bcAddress[0] - 1) * 3) % 9)
             ];
-            // cell.neighbors = {
-            //   row: [0, 0, 0],
-            //   column: [0, 0, 0],
-            //   block: [0, 0, 0]
-            // };
+
             cells.push(cell);
             if (cells.length === 81) callback(cells);
           });
@@ -134,34 +157,53 @@ class Home extends Component {
       });
     });
   };
-  formatCells = () => {
-    const { cells } = this.state;
-    let formattedCells = {};
+  generateNeighbors = (cells, callback) => {
     cells.forEach((cell, index) => {
-      let formattedCell = {};
-      formattedCell.value = cell;
+      const row = cells.filter(
+        (c) => c.rcAddress[0] === cell.rcAddress[0] && c.index !== cell.index
+      );
+      const column = cells.filter(
+        (c) => c.rcAddress[1] === cell.rcAddress[1] && c.index !== cell.index
+      );
+      const block = cells.filter(
+        (c) => c.bcAddress[0] === cell.bcAddress[0] && c.index !== cell.index
+      );
+      cell.cellNeighbors = {
+        row,
+        column,
+        block
+      };
     });
-    return formattedCells;
+    callback(cells);
   };
   onCellClick = (cellId) => {
     console.log(`Clicked on cell # ${cellId}`);
-    this.setState({ selectedCell: cellId });
+    const { cells } = this.state;
+    const selectedCell = cells.find((c) => c.index === cellId);
+    console.log(selectedCell);
+
+    let neighbors = { ...selectedCell.cellNeighbors };
+    neighbors.row = neighbors.row.map((n) => n.index);
+    neighbors.block = neighbors.block.map((n) => n.index);
+    neighbors.column = neighbors.column.map((n) => n.index);
+
+    this.setState({ selectedCell, selectedCellId: cellId, neighbors });
   };
   onNumberClick = (number) => {
     if (number === 'Reset') {
       this.generateCells((cells) => this.setState({ cells }));
     } else {
-      const { cells, selectedCell } = this.state;
+      const { cells, selectedCellId } = this.state;
       let newCells = [...cells];
-      if (selectedCell > -1) {
-        newCells[selectedCell - 1].value = number;
+      if (selectedCellId > -1) {
+        newCells[selectedCellId - 1].value = number;
         this.setState({ cells: newCells });
       }
     }
   };
   render() {
     const { classes } = this.props;
-    const { cells, selectedCell } = this.state;
+    const { cells, selectedCell, selectedCellId, neighbors } = this.state;
 
     return (
       <Grid
@@ -212,37 +254,49 @@ class Home extends Component {
                           if (cells && cells[cellId - 1]) {
                             cell = cells[cellId - 1];
                             number = cells[cellId - 1].value;
-                            tMessage = JSON.stringify(cells[cellId - 1]);
-                            while (
-                              tMessage.includes('{') ||
-                              tMessage.includes('}') ||
-                              tMessage.includes(',')
-                            ) {
-                              tMessage = tMessage
-                                .replace('{', '\n\n')
-                                .replace('}', '\n\n')
-                                .replace(',', '\n\n');
-                            }
+                            tMessage = `JSON.stringify(cells[cellId - 1]);`;
                           }
                           return (
-                            <Tooltip
-                              key={cellId * 100}
-                              classes={{ tooltip: classes.tooltip }}
-                              title={`${cellId} - ${tMessage}`}
-                              placement="right">
-                              <Button
-                                children={`${number}`}
-                                variant={
-                                  selectedCell === cellId
-                                    ? 'contained'
-                                    : 'outlined'
-                                }
-                                color="primary"
-                                key={cellId}
-                                className={classes.cell}
-                                onClick={() => this.onCellClick(cellId)}
-                              />
-                            </Tooltip>
+                            // <Tooltip
+                            //   key={cellId * 100}
+                            //   classes={{ tooltip: classes.tooltip }}
+                            //   title={`${cellId} - ${tMessage}`}
+                            //   placement="right">
+                            <Button
+                              children={`${number}`}
+                              variant={
+                                selectedCellId === cellId
+                                  ? 'contained'
+                                  : 'outlined'
+                              }
+                              color="primary"
+                              key={cellId}
+                              className={
+                                selectedCellId === cellId
+                                  ? classNames(
+                                      classes.cell,
+                                      classes.selectedCell
+                                    )
+                                  : neighbors.block.includes(cellId)
+                                    ? classNames(
+                                        classes.cell,
+                                        classes.blockNeighbor
+                                      )
+                                    : neighbors.row.includes(cellId)
+                                      ? classNames(
+                                          classes.cell,
+                                          classes.rowNeighbor
+                                        )
+                                      : neighbors.column.includes(cellId)
+                                        ? classNames(
+                                            classes.cell,
+                                            classes.columnNeighbor
+                                          )
+                                        : classes.cell
+                              }
+                              onClick={() => this.onCellClick(cellId)}
+                            />
+                            // </Tooltip>
                           );
                         })}
                       </Grid>
