@@ -114,10 +114,13 @@ class Home extends Component {
   }
   componentDidMount() {
     this.generateCells((cells) => {
-      if (cells.length === 81)
+      if (cells.length === 81) {
         this.generateNeighbors(cells, (newCells) => {
-          this.setState({ cells: newCells });
+          this.createSolution(newCells, (nc) => {
+            this.setState({ cells: nc });
+          });
         });
+      }
     });
   }
 
@@ -136,9 +139,8 @@ class Home extends Component {
           [1, 2, 3].forEach((d) => {
             let cell = {};
             cell.index = d + 3 * (c - 1) + 9 * (b - 1) + 27 * (a - 1);
-            cell.value =
-              blockCellIndexArr[cell.index - 1][0] /
-              blockCellIndexArr[cell.index - 1][1];
+            cell.value = ''; // blockCellIndexArr[cell.index - 1][0] / blockCellIndexArr[cell.index - 1][1];
+
             cell.bcAddress = [
               blockCellIndexArr[cell.index - 1][1],
               blockCellIndexArr[cell.index - 1][2]
@@ -168,21 +170,60 @@ class Home extends Component {
       const block = cells.filter(
         (c) => c.bcAddress[0] === cell.bcAddress[0] && c.index !== cell.index
       );
-      cell.cellNeighbors = {
+      cell.neighbors = {
         row,
         column,
         block
       };
+      if (cell.index === 81) callback(cells);
     });
-    callback(cells);
   };
+
+  getCandidates = (cell) => {
+    let candidates = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+    let neighborValues = [];
+
+    let neighbors = { ...cell.neighbors };
+    neighbors.row = neighbors.row.map((n) => n.value);
+    neighbors.block = neighbors.block.map((n) => n.value);
+    neighbors.column = neighbors.column.map((n) => n.value);
+    neighbors = [...neighbors.row, ...neighbors.block, ...neighbors.column];
+
+    candidates = candidates.filter((c) => !neighbors.includes(c));
+    return candidates;
+  };
+
+  createSolution = (cells, callback) => {
+    cells.forEach((cell) => {
+      if (cells.stop) return;
+      else {
+        const candidates = this.getCandidates(cell);
+
+        if (candidates.length > 0) {
+          let randomNum =
+            candidates[Math.floor(Math.random() * candidates.length)];
+          cell.value = randomNum;
+          if (cell.index === 81) {
+            callback(cells);
+            return true;
+          }
+        } else {
+          cells.stop = true;
+          callback(cells);
+          return false;
+        }
+      }
+    });
+  };
+
   onCellClick = (cellId) => {
     console.log(`Clicked on cell # ${cellId}`);
     const { cells } = this.state;
     const selectedCell = cells.find((c) => c.index === cellId);
     console.log(selectedCell);
 
-    let neighbors = { ...selectedCell.cellNeighbors };
+    let neighbors = { ...selectedCell.neighbors };
     neighbors.row = neighbors.row.map((n) => n.index);
     neighbors.block = neighbors.block.map((n) => n.index);
     neighbors.column = neighbors.column.map((n) => n.index);
